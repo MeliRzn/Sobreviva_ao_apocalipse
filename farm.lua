@@ -44,6 +44,22 @@ local basePosition = nil
 local selectedItem = "Fuel"
 
 -- ============================================
+-- KILL AURA VARIABLES
+-- ============================================
+local killAuraConn = nil
+local killAuraLastSwing = 0
+local killAuraCurrentTarget = nil
+local killAuraTargetDistance = nil
+local killAuraEnabled = false
+local killAuraAutoEquip = false
+local killAuraShowIndicator = true
+local killAuraExtendedRange = true
+local killAuraRange = 6
+local killAuraSwingRate = 0.5
+local killAuraPriority = "Nearest"
+local charactersFolder = Workspace:FindFirstChild("Characters")
+
+-- ============================================
 -- ANTI-PUXÃO PARA TELEPORTE
 -- ============================================
 local antiPullActive = false
@@ -82,8 +98,8 @@ gui.Name = "SAFarm"
 gui.Parent = game.CoreGui
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 500, 0, 350)
-mainFrame.Position = UDim2.new(0.5, -250, 0.5, -175)
+mainFrame.Size = UDim2.new(0, 500, 0, 550)
+mainFrame.Position = UDim2.new(0.5, -250, 0.5, -275)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = gui
@@ -330,9 +346,344 @@ btnSpeedDown.TextSize = 12
 btnSpeedDown.Parent = rightPanel
 Instance.new("UICorner", btnSpeedDown).CornerRadius = UDim.new(0, 5)
 
+-- Kill Aura Section
+local killAuraFrame = Instance.new("Frame")
+killAuraFrame.Size = UDim2.new(1, -20, 0, 200)
+killAuraFrame.Position = UDim2.new(0, 10, 0, 320)
+killAuraFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+killAuraFrame.Parent = rightPanel
+Instance.new("UICorner", killAuraFrame).CornerRadius = UDim.new(0, 8)
+
+local killAuraTitle = Instance.new("TextLabel")
+killAuraTitle.Size = UDim2.new(1, -20, 0, 25)
+killAuraTitle.Position = UDim2.new(0, 10, 0, 10)
+killAuraTitle.BackgroundTransparency = 1
+killAuraTitle.Text = "⚔️ Kill Aura"
+killAuraTitle.TextColor3 = Color3.fromRGB(255, 100, 100)
+killAuraTitle.Font = Enum.Font.GothamBold
+killAuraTitle.TextSize = 13
+killAuraTitle.TextXAlignment = Enum.TextXAlignment.Left
+killAuraTitle.Parent = killAuraFrame
+
+local btnKillAura = Instance.new("TextButton")
+btnKillAura.Size = UDim2.new(1, -20, 0, 30)
+btnKillAura.Position = UDim2.new(0, 10, 0, 40)
+btnKillAura.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+btnKillAura.Text = "⚔️ ATIVAR KILL AURA"
+btnKillAura.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnKillAura.Font = Enum.Font.GothamBold
+btnKillAura.TextSize = 12
+btnKillAura.Parent = killAuraFrame
+Instance.new("UICorner", btnKillAura).CornerRadius = UDim.new(0, 6)
+
+local btnAutoEquip = Instance.new("TextButton")
+btnAutoEquip.Size = UDim2.new(0.47, 0, 0, 28)
+btnAutoEquip.Position = UDim2.new(0, 10, 0, 80)
+btnAutoEquip.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+btnAutoEquip.Text = "🔫 Auto-Equip: OFF"
+btnAutoEquip.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnAutoEquip.Font = Enum.Font.Gotham
+btnAutoEquip.TextSize = 10
+btnAutoEquip.Parent = killAuraFrame
+Instance.new("UICorner", btnAutoEquip).CornerRadius = UDim.new(0, 5)
+
+local btnExtendedRange = Instance.new("TextButton")
+btnExtendedRange.Size = UDim2.new(0.47, 0, 0, 28)
+btnExtendedRange.Position = UDim2.new(0.53, -10, 0, 80)
+btnExtendedRange.BackgroundColor3 = Color3.fromRGB(80, 180, 80)
+btnExtendedRange.Text = "📏 Extended: ON"
+btnExtendedRange.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnExtendedRange.Font = Enum.Font.Gotham
+btnExtendedRange.TextSize = 10
+btnExtendedRange.Parent = killAuraFrame
+Instance.new("UICorner", btnExtendedRange).CornerRadius = UDim.new(0, 5)
+
+local rangeLabel = Instance.new("TextLabel")
+rangeLabel.Size = UDim2.new(1, -20, 0, 20)
+rangeLabel.Position = UDim2.new(0, 10, 0, 120)
+rangeLabel.BackgroundTransparency = 1
+rangeLabel.Text = "📏 Range: 6 studs"
+rangeLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
+rangeLabel.Font = Enum.Font.Gotham
+rangeLabel.TextSize = 10
+rangeLabel.TextXAlignment = Enum.TextXAlignment.Left
+rangeLabel.Parent = killAuraFrame
+
+local btnRangeUp = Instance.new("TextButton")
+btnRangeUp.Size = UDim2.new(0, 35, 0, 22)
+btnRangeUp.Position = UDim2.new(0, 10, 0, 145)
+btnRangeUp.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
+btnRangeUp.Text = "+2"
+btnRangeUp.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnRangeUp.Font = Enum.Font.GothamBold
+btnRangeUp.TextSize = 11
+btnRangeUp.Parent = killAuraFrame
+Instance.new("UICorner", btnRangeUp).CornerRadius = UDim.new(0, 4)
+
+local btnRangeDown = Instance.new("TextButton")
+btnRangeDown.Size = UDim2.new(0, 35, 0, 22)
+btnRangeDown.Position = UDim2.new(0, 50, 0, 145)
+btnRangeDown.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+btnRangeDown.Text = "-2"
+btnRangeDown.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnRangeDown.Font = Enum.Font.GothamBold
+btnRangeDown.TextSize = 11
+btnRangeDown.Parent = killAuraFrame
+Instance.new("UICorner", btnRangeDown).CornerRadius = UDim.new(0, 4)
+
+local priorityLabel = Instance.new("TextLabel")
+priorityLabel.Size = UDim2.new(0, 100, 0, 22)
+priorityLabel.Position = UDim2.new(0, 95, 0, 145)
+priorityLabel.BackgroundTransparency = 1
+priorityLabel.Text = "Priority: Nearest"
+priorityLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+priorityLabel.Font = Enum.Font.Gotham
+priorityLabel.TextSize = 10
+priorityLabel.TextXAlignment = Enum.TextXAlignment.Left
+priorityLabel.Parent = killAuraFrame
+
+local btnPriority = Instance.new("TextButton")
+btnPriority.Size = UDim2.new(0, 80, 0, 22)
+btnPriority.Position = UDim2.new(0, 200, 0, 145)
+btnPriority.BackgroundColor3 = Color3.fromRGB(100, 100, 150)
+btnPriority.Text = "Change"
+btnPriority.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnPriority.Font = Enum.Font.Gotham
+btnPriority.TextSize = 10
+btnPriority.Parent = killAuraFrame
+Instance.new("UICorner", btnPriority).CornerRadius = UDim.new(0, 4)
+
+local swingLabel = Instance.new("TextLabel")
+swingLabel.Size = UDim2.new(1, -20, 0, 20)
+swingLabel.Position = UDim2.new(0, 10, 0, 175)
+swingLabel.BackgroundTransparency = 1
+swingLabel.Text = "⏱️ Swing Delay: 0.5s"
+swingLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
+swingLabel.Font = Enum.Font.Gotham
+swingLabel.TextSize = 10
+swingLabel.TextXAlignment = Enum.TextXAlignment.Left
+swingLabel.Parent = killAuraFrame
+
 -- ============================================
 -- FUNÇÕES
 -- ============================================
+
+-- ============================================
+-- KILL AURA FUNCTIONS
+-- ============================================
+local mobNames = {"Runner", "Crawler", "Riot", "Zombie", "Brute", "Spitter", "Boss"}
+
+-- Weapon swing speeds (seconds between attacks)
+local weaponSwingSpeeds = {
+    ["Knife"] = 0.25,
+    ["Katana"] = 0.3,
+    ["Crowbar"] = 0.35,
+    ["Bat"] = 0.45,
+    ["Spiked Bat"] = 0.45,
+    ["Hatchet"] = 0.4,
+    ["Scythe"] = 0.4,
+    ["Spear"] = 0.4,
+    ["Fire Axe"] = 0.55,
+    ["Sledgehammer"] = 0.6,
+    ["Chainsaw"] = 0.35,
+    ["Riot Shield"] = 0.5,
+}
+
+local function getWeaponSwingSpeed()
+    local char = LocalPlayer.Character
+    if not char then return 0.5 end
+    
+    local tool = char:FindFirstChildOfClass("Tool")
+    if not tool then return 0.5 end
+    
+    local toolName = tool.Name
+    
+    if weaponSwingSpeeds[toolName] then
+        return weaponSwingSpeeds[toolName]
+    end
+    
+    for weaponName, speed in pairs(weaponSwingSpeeds) do
+        if string.find(toolName:lower(), weaponName:lower()) then
+            return speed
+        end
+    end
+    
+    return 0.5
+end
+
+local function findTargetsInRange(range)
+    local char = LocalPlayer.Character
+    if not char then return {} end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return {} end
+    if not charactersFolder then return {} end
+
+    local playerCharSet = {}
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p.Character then
+            playerCharSet[p.Character] = true
+        end
+    end
+
+    local targets = {}
+    local myPos = hrp.Position
+
+    for _, mob in ipairs(charactersFolder:GetChildren()) do
+        if mob == char then continue end
+        if playerCharSet[mob] then continue end
+
+        local mobHRP = mob:FindFirstChild("HumanoidRootPart")
+        local mobHum = mob:FindFirstChildOfClass("Humanoid")
+        if not mobHRP or not mobHum then continue end
+        if mobHum.Health <= 0 then continue end
+        local dist = (mobHRP.Position - myPos).Magnitude
+        if dist <= range then
+            table.insert(targets, {
+                mob = mob,
+                dist = dist,
+                health = mobHum.Health,
+                maxHealth = mobHum.MaxHealth,
+            })
+        end
+    end
+
+    if killAuraPriority == "Nearest" then
+        table.sort(targets, function(a, b) return a.dist < b.dist end)
+    elseif killAuraPriority == "Lowest HP" then
+        table.sort(targets, function(a, b) return a.health < b.health end)
+    elseif killAuraPriority == "Highest HP" then
+        table.sort(targets, function(a, b) return a.health > b.health end)
+    end
+
+    return targets
+end
+
+local function autoEquipWeapon()
+    local char = LocalPlayer.Character
+    if not char then return false end
+    if char:FindFirstChildOfClass("Tool") then return true end
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    if not backpack then return false end
+
+    local bestTool = nil
+    local bestSpeed = math.huge
+
+    for _, tool in ipairs(backpack:GetChildren()) do
+        if not tool:IsA("Tool") then continue end
+        if not (tool:FindFirstChild("Swing") or tool:FindFirstChild("HitTargets") or tool:FindFirstChild("RemoteClick")) then continue end
+        local speed = weaponSwingSpeeds[tool.Name] or 0.5
+        for wName, s in pairs(weaponSwingSpeeds) do
+            if string.find(tool.Name:lower(), wName:lower()) then speed = s break end
+        end
+        if speed < bestSpeed then
+            bestSpeed = speed
+            bestTool = tool
+        end
+    end
+
+    if bestTool then
+        pcall(function() bestTool.Parent = char end)
+        return true
+    end
+    return false
+end
+
+local function stopKillAura()
+    if killAuraConn then
+        killAuraConn:Disconnect()
+        killAuraConn = nil
+    end
+    killAuraLastSwing = 0
+    killAuraCurrentTarget = nil
+    killAuraTargetDistance = nil
+    pcall(function()
+        if setsimulationradius then setsimulationradius(50, 300) end
+    end)
+end
+
+local function startKillAura()
+    stopKillAura()
+
+    pcall(function()
+        if setsimulationradius then setsimulationradius(1000, 1000) end
+    end)
+
+    killAuraConn = RunService.Heartbeat:Connect(function()
+        if not killAuraEnabled then
+            killAuraCurrentTarget = nil
+            return
+        end
+
+        local success, err = pcall(function()
+            local char = LocalPlayer.Character
+            if not char then return end
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if not hrp then return end
+
+            local tool = char:FindFirstChildOfClass("Tool")
+            if not tool and killAuraAutoEquip then
+                autoEquipWeapon()
+                tool = char:FindFirstChildOfClass("Tool")
+            end
+
+            if not tool then
+                killAuraCurrentTarget = nil
+                return
+            end
+
+            local swing = tool:FindFirstChild("Swing")
+            local hitTargets = tool:FindFirstChild("HitTargets")
+            local remoteClick = tool:FindFirstChild("RemoteClick")
+
+            local baseRange = killAuraRange
+            local useExtendedRange = killAuraExtendedRange
+            local attackRange = useExtendedRange and (baseRange + 20) or baseRange
+
+            local targets = findTargetsInRange(attackRange)
+            killAuraCurrentTarget = targets[1] and targets[1].mob or nil
+            killAuraTargetDistance = targets[1] and targets[1].dist or nil
+
+            if #targets == 0 then return end
+
+            local weaponSpeed = getWeaponSwingSpeed()
+            local userSwingRate = killAuraSwingRate
+            local effectiveSwingRate = math.max(weaponSpeed, userSwingRate)
+            local now = tick()
+            if now - killAuraLastSwing < effectiveSwingRate then return end
+
+            local mobModels = {}
+            for _, t in ipairs(targets) do
+                table.insert(mobModels, t.mob)
+            end
+
+            local attackSuccess = false
+
+            if swing and hitTargets then
+                local s1, e1 = pcall(function() swing:FireServer() end)
+                if s1 then
+                    killAuraLastSwing = now
+                    attackSuccess = true
+                    local s2, e2 = pcall(function() hitTargets:FireServer(mobModels) end)
+                    if not s2 then warn("[KillAura] HitTargets error: " .. tostring(e2)) end
+                else
+                    warn("[KillAura] Swing error: " .. tostring(e1))
+                end
+            elseif remoteClick then
+                local s, e = pcall(function() remoteClick:FireServer(targets[1].mob) end)
+                attackSuccess = s
+                if not s then warn("[KillAura] RemoteClick error: " .. tostring(e)) end
+            end
+
+            if attackSuccess and killAuraLastSwing ~= now then
+                killAuraLastSwing = now
+            end
+        end)
+
+        if not success then
+            warn("[KillAura] Error: " .. tostring(err))
+        end
+    end)
+end
 local function collectItem(item)
     local char = LocalPlayer.Character
     if not char then return end
@@ -393,6 +744,7 @@ local function updateUI()
     collectedLabel.Text = "📦 Coletados: " .. totalCollected
     backpackLabel.Text = "🎒 Mochila: " .. getBackpackCount() .. " | ⚡ Vel: " .. flySpeed
     speedLabel.Text = "⚡ Velocidade: " .. flySpeed
+    swingLabel.Text = "⏱️ Swing Delay: " .. killAuraSwingRate .. "s"
 end
 
 local function getNearestItem(itemName)
@@ -576,7 +928,70 @@ btnTeleport.MouseButton1Click:Connect(function() teleportToItem(selectedItem) en
 btnNextTeleport.MouseButton1Click:Connect(teleportToNext)
 btnBase.MouseButton1Click:Connect(teleportToBase)
 btnStop.MouseButton1Click:Connect(stopFarm)
-closeBtn.MouseButton1Click:Connect(function() stopFarm(); gui:Destroy() end)
+closeBtn.MouseButton1Click:Connect(function() stopFarm(); stopKillAura(); gui:Destroy() end)
+
+-- Kill Aura Events
+btnKillAura.MouseButton1Click:Connect(function()
+    killAuraEnabled = not killAuraEnabled
+    if killAuraEnabled then
+        btnKillAura.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
+        btnKillAura.Text = "⚔️ DESATIVAR KILL AURA"
+        startKillAura()
+    else
+        btnKillAura.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        btnKillAura.Text = "⚔️ ATIVAR KILL AURA"
+        stopKillAura()
+    end
+end)
+
+btnAutoEquip.MouseButton1Click:Connect(function()
+    killAuraAutoEquip = not killAuraAutoEquip
+    if killAuraAutoEquip then
+        btnAutoEquip.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
+        btnAutoEquip.Text = "🔫 Auto-Equip: ON"
+    else
+        btnAutoEquip.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        btnAutoEquip.Text = "🔫 Auto-Equip: OFF"
+    end
+end)
+
+btnExtendedRange.MouseButton1Click:Connect(function()
+    killAuraExtendedRange = not killAuraExtendedRange
+    if killAuraExtendedRange then
+        btnExtendedRange.BackgroundColor3 = Color3.fromRGB(80, 180, 80)
+        btnExtendedRange.Text = "📏 Extended: +20"
+    else
+        btnExtendedRange.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        btnExtendedRange.Text = "📏 Extended: OFF"
+    end
+end)
+
+btnRangeUp.MouseButton1Click:Connect(function()
+    killAuraRange = killAuraRange + 10
+    if killAuraRange >= 1000 then
+        rangeLabel.Text = "📏 Range: ∞ (Unlimited)"
+    else
+        rangeLabel.Text = "📏 Range: " .. killAuraRange .. " studs"
+    end
+end)
+
+btnRangeDown.MouseButton1Click:Connect(function()
+    killAuraRange = math.max(killAuraRange - 10, 2)
+    if killAuraRange >= 1000 then
+        rangeLabel.Text = "📏 Range: ∞ (Unlimited)"
+    else
+        rangeLabel.Text = "📏 Range: " .. killAuraRange .. " studs"
+    end
+end)
+
+local priorities = {"Nearest", "Lowest HP", "Highest HP"}
+local currentPriorityIndex = 1
+
+btnPriority.MouseButton1Click:Connect(function()
+    currentPriorityIndex = currentPriorityIndex % 3 + 1
+    killAuraPriority = priorities[currentPriorityIndex]
+    priorityLabel.Text = "Priority: " .. killAuraPriority
+end)
 
 -- Minimizar/Expandir
 minimizeBtn.MouseButton1Click:Connect(function()
