@@ -98,8 +98,8 @@ gui.Name = "SAFarm"
 gui.Parent = game.CoreGui
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 500, 0, 550)
-mainFrame.Position = UDim2.new(0.5, -250, 0.5, -275)
+mainFrame.Size = UDim2.new(0, 400, 0, 550)
+mainFrame.Position = UDim2.new(0.5, -200, 0.5, -275)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = gui
@@ -160,7 +160,7 @@ Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
 
 -- Painel esquerdo
 local leftPanel = Instance.new("Frame")
-leftPanel.Size = UDim2.new(0, 170, 1, -40)
+leftPanel.Size = UDim2.new(0, 100, 1, -40)
 leftPanel.Position = UDim2.new(0, 0, 0, 40)
 leftPanel.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
 leftPanel.Parent = mainFrame
@@ -221,8 +221,8 @@ itemScroll.CanvasSize = UDim2.new(0, 0, 0, #farmItems * 32)
 
 -- Painel direito
 local rightPanel = Instance.new("Frame")
-rightPanel.Size = UDim2.new(1, -175, 1, -40)
-rightPanel.Position = UDim2.new(0, 175, 0, 40)
+rightPanel.Size = UDim2.new(1, -105, 1, -40)
+rightPanel.Position = UDim2.new(0, 100, 0, 40)
 rightPanel.BackgroundColor3 = Color3.fromRGB(25, 25, 33)
 rightPanel.Parent = mainFrame
 
@@ -348,7 +348,7 @@ Instance.new("UICorner", btnSpeedDown).CornerRadius = UDim.new(0, 5)
 
 -- Kill Aura Section
 local killAuraFrame = Instance.new("Frame")
-killAuraFrame.Size = UDim2.new(1, -20, 0, 200)
+killAuraFrame.Size = UDim2.new(1, -20, 0, 180)
 killAuraFrame.Position = UDim2.new(0, 10, 0, 320)
 killAuraFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 killAuraFrame.Parent = rightPanel
