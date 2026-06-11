@@ -9,9 +9,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 
--- Load Modern UI Library
-local UILibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/axzaxzz/roblox-ui-library/main/UILibrary.lua"))()
-
 -- Remotes
 local Remotes = ReplicatedStorage:FindFirstChild("Remotes")
 local pickUpItemRemote = Remotes and Remotes:FindFirstChild("Interaction") and Remotes.Interaction:FindFirstChild("PickUpItem")
@@ -63,126 +60,6 @@ local killAuraPriority = "Nearest"
 local charactersFolder = Workspace:FindFirstChild("Characters")
 
 -- ============================================
--- MODERN UI SETUP
--- ============================================
-local Window = UILibrary:CreateWindow("🎯 SA Farm + Kill Aura", {
-    Size = {X = 380, Y = 420}
-})
-
-local FarmTab = Window:CreateTab("Farm", "🌾")
-local KillAuraTab = Window:CreateTab("Kill Aura", "⚔️")
-
--- Farm Tab Components
-FarmTab:AddDropdown({
-    Text = "Select Item",
-    List = farmItems,
-    Callback = function(option, index)
-        selectedItem = option
-    end
-})
-
-FarmTab:AddButton({
-    Text = "🕊️ Start Farm (Fly)",
-    Callback = function()
-        startVooFarm(selectedItem)
-    end
-})
-
-FarmTab:AddButton({
-    Text = "⚡ Teleport to Item",
-    Callback = function()
-        teleportToItem(selectedItem)
-    end
-})
-
-FarmTab:AddButton({
-    Text = "🔄 Teleport Next",
-    Callback = function()
-        teleportToNext()
-    end
-})
-
-FarmTab:AddButton({
-    Text = "🏠 Return to Base",
-    Callback = function()
-        teleportToBase()
-    end
-})
-
-FarmTab:AddButton({
-    Text = "⏹️ Stop Farm",
-    Callback = function()
-        stopFarm()
-    end
-})
-
-FarmTab:AddSlider({
-    Text = "Fly Speed",
-    Min = 10,
-    Max = 200,
-    Default = 33,
-    Callback = function(value)
-        flySpeed = value
-    end
-})
-
-local farmStatusSection = FarmTab:AddSection("Status")
-local collectedText = farmStatusSection:AddLabel("📦 Collected: 0")
-local backpackText = farmStatusSection:AddLabel("🎒 Backpack: 0")
-
--- Kill Aura Tab Components
-KillAuraTab:AddToggle({
-    Text = "Enable Kill Aura",
-    Default = false,
-    Callback = function(value)
-        killAuraEnabled = value
-        if value then
-            startKillAura()
-        else
-            stopKillAura()
-        end
-    end
-})
-
-KillAuraTab:AddToggle({
-    Text = "Auto-Equip Weapon",
-    Default = false,
-    Callback = function(value)
-        killAuraAutoEquip = value
-    end
-})
-
-KillAuraTab:AddToggle({
-    Text = "Extended Range (+20)",
-    Default = true,
-    Callback = function(value)
-        killAuraExtendedRange = value
-    end
-})
-
-KillAuraTab:AddSlider({
-    Text = "Range",
-    Min = 2,
-    Max = 100,
-    Default = 6,
-    Callback = function(value)
-        killAuraRange = value
-    end
-})
-
-KillAuraTab:AddDropdown({
-    Text = "Priority",
-    List = {"Nearest", "Lowest HP", "Highest HP"},
-    Callback = function(option, index)
-        killAuraPriority = option
-    end
-})
-
-local kaStatusSection = KillAuraTab:AddSection("Info")
-local rangeLabel = kaStatusSection:AddLabel("📏 Range: 6 studs")
-local swingLabel = kaStatusSection:AddLabel("⏱️ Swing Delay: 0.5s")
-
--- ============================================
 -- ANTI-PUXÃO PARA TELEPORTE
 -- ============================================
 local antiPullActive = false
@@ -212,6 +89,380 @@ local function disableAntiPull()
         antiPullConn = nil
     end
 end
+
+-- ============================================
+-- UI
+-- ============================================
+local gui = Instance.new("ScreenGui")
+gui.Name = "SAFarm"
+gui.Parent = game.CoreGui
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 400, 0, 450)
+mainFrame.Position = UDim2.new(0.5, -200, 0.5, -225)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = gui
+mainFrame.Draggable = true
+mainFrame.Active = true
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
+
+-- Botão de expandir (quando minimizado)
+local expandBtn = Instance.new("TextButton")
+expandBtn.Size = UDim2.new(0, 40, 0, 40)
+expandBtn.Position = UDim2.new(0.93, 0, 0.5, 0)
+expandBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+expandBtn.Text = "🎯"
+expandBtn.TextSize = 20
+expandBtn.Visible = false
+expandBtn.Parent = gui
+expandBtn.Draggable = true
+Instance.new("UICorner", expandBtn).CornerRadius = UDim.new(0, 10)
+
+-- Título
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 40)
+titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+titleBar.Parent = mainFrame
+Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 10)
+
+local titleText = Instance.new("TextLabel")
+titleText.Size = UDim2.new(1, 0, 1, 0)
+titleText.BackgroundTransparency = 1
+titleText.Text = "🎯 SA Farm + Kill Aura"
+titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleText.Font = Enum.Font.GothamBold
+titleText.TextSize = 15
+titleText.Parent = titleBar
+
+-- Botão minimizar
+local minimizeBtn = Instance.new("TextButton")
+minimizeBtn.Size = UDim2.new(0, 30, 0, 30)
+minimizeBtn.Position = UDim2.new(1, -70, 0, 5)
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(255, 180, 30)
+minimizeBtn.Text = "–"
+minimizeBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+minimizeBtn.Font = Enum.Font.GothamBold
+minimizeBtn.TextSize = 18
+minimizeBtn.Parent = titleBar
+Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0, 6)
+
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -35, 0, 5)
+closeBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+closeBtn.Text = "X"
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 16
+closeBtn.Parent = titleBar
+Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
+
+-- Painel esquerdo
+local leftPanel = Instance.new("Frame")
+leftPanel.Size = UDim2.new(0, 100, 1, -40)
+leftPanel.Position = UDim2.new(0, 0, 0, 40)
+leftPanel.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+leftPanel.Parent = mainFrame
+
+local leftTitle = Instance.new("TextLabel")
+leftTitle.Size = UDim2.new(1, 0, 0, 28)
+leftTitle.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
+leftTitle.Text = "📦 Itens"
+leftTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+leftTitle.Font = Enum.Font.GothamBold
+leftTitle.TextSize = 12
+leftTitle.Parent = leftPanel
+
+local itemScroll = Instance.new("ScrollingFrame")
+itemScroll.Size = UDim2.new(1, -10, 1, -32)
+itemScroll.Position = UDim2.new(0, 5, 0, 32)
+itemScroll.BackgroundTransparency = 1
+itemScroll.BorderSizePixel = 0
+itemScroll.ScrollBarThickness = 3
+itemScroll.ScrollBarImageColor3 = Color3.fromRGB(70, 130, 250)
+itemScroll.Parent = leftPanel
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.Parent = itemScroll
+listLayout.Padding = UDim.new(0, 2)
+
+local farmItems = {
+    "Fuel","Bandage","Knife","Crowbar","Pistol","Revolver","Grenade","Flashbang",
+    "Bear Trap","Tear Gas","Battery","Chips","Beans","Scrap","Screws",
+    "Bloxy Cola","Bloxiade","Shells","Long Ammo","Medium Ammo","Pistol Ammo"
+}
+
+local itemButtons = {}
+
+for _, itemName in ipairs(farmItems) do
+    local itemBtn = Instance.new("TextButton")
+    itemBtn.Size = UDim2.new(1, 0, 0, 30)
+    itemBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    itemBtn.Text = itemName
+    itemBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    itemBtn.Font = Enum.Font.Gotham
+    itemBtn.TextSize = 12
+    itemBtn.Parent = itemScroll
+    Instance.new("UICorner", itemBtn).CornerRadius = UDim.new(0, 5)
+    
+    itemBtn.MouseButton1Click:Connect(function()
+        for _, btn in ipairs(itemButtons) do
+            btn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+        end
+        itemBtn.BackgroundColor3 = Color3.fromRGB(0, 160, 80)
+        selectedItem = itemName
+    end)
+    
+    table.insert(itemButtons, itemBtn)
+end
+
+itemScroll.CanvasSize = UDim2.new(0, 0, 0, #farmItems * 32)
+
+-- Painel direito
+local rightPanel = Instance.new("Frame")
+rightPanel.Size = UDim2.new(1, -105, 1, -40)
+rightPanel.Position = UDim2.new(0, 100, 0, 40)
+rightPanel.BackgroundColor3 = Color3.fromRGB(25, 25, 33)
+rightPanel.Parent = mainFrame
+
+-- Status
+local statusFrame = Instance.new("Frame")
+statusFrame.Size = UDim2.new(1, -20, 0, 70)
+statusFrame.Position = UDim2.new(0, 10, 0, 10)
+statusFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+statusFrame.Parent = rightPanel
+Instance.new("UICorner", statusFrame).CornerRadius = UDim.new(0, 8)
+
+local collectedLabel = Instance.new("TextLabel")
+collectedLabel.Size = UDim2.new(1, -20, 0, 25)
+collectedLabel.Position = UDim2.new(0, 10, 0, 10)
+collectedLabel.BackgroundTransparency = 1
+collectedLabel.Text = "📦 Coletados: 0"
+collectedLabel.TextColor3 = Color3.fromRGB(150, 255, 150)
+collectedLabel.Font = Enum.Font.GothamBold
+collectedLabel.TextSize = 13
+collectedLabel.TextXAlignment = Enum.TextXAlignment.Left
+collectedLabel.Parent = statusFrame
+
+local backpackLabel = Instance.new("TextLabel")
+backpackLabel.Size = UDim2.new(1, -20, 0, 25)
+backpackLabel.Position = UDim2.new(0, 10, 0, 38)
+backpackLabel.BackgroundTransparency = 1
+backpackLabel.Text = "🎒 Mochila: 0 | ⚡ Vel: 33"
+backpackLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
+backpackLabel.Font = Enum.Font.Gotham
+backpackLabel.TextSize = 11
+backpackLabel.TextXAlignment = Enum.TextXAlignment.Left
+backpackLabel.Parent = statusFrame
+
+-- Botões
+local btnVoo = Instance.new("TextButton")
+btnVoo.Size = UDim2.new(1, -20, 0, 38)
+btnVoo.Position = UDim2.new(0, 10, 0, 90)
+btnVoo.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
+btnVoo.Text = "🕊️ INICIAR FARM (VOO)"
+btnVoo.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnVoo.Font = Enum.Font.GothamBold
+btnVoo.TextSize = 13
+btnVoo.Parent = rightPanel
+Instance.new("UICorner", btnVoo).CornerRadius = UDim.new(0, 8)
+
+local btnTeleport = Instance.new("TextButton")
+btnTeleport.Size = UDim2.new(1, -20, 0, 38)
+btnTeleport.Position = UDim2.new(0, 10, 0, 135)
+btnTeleport.BackgroundColor3 = Color3.fromRGB(70, 130, 250)
+btnTeleport.Text = "⚡ TELEPORTAR AO ITEM"
+btnTeleport.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnTeleport.Font = Enum.Font.GothamBold
+btnTeleport.TextSize = 13
+btnTeleport.Parent = rightPanel
+Instance.new("UICorner", btnTeleport).CornerRadius = UDim.new(0, 8)
+
+local btnNextTeleport = Instance.new("TextButton")
+btnNextTeleport.Size = UDim2.new(1, -20, 0, 33)
+btnNextTeleport.Position = UDim2.new(0, 10, 0, 180)
+btnNextTeleport.BackgroundColor3 = Color3.fromRGB(100, 100, 200)
+btnNextTeleport.Text = "🔄 TELEPORTAR PRÓXIMO"
+btnNextTeleport.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnNextTeleport.Font = Enum.Font.GothamBold
+btnNextTeleport.TextSize = 12
+btnNextTeleport.Parent = rightPanel
+Instance.new("UICorner", btnNextTeleport).CornerRadius = UDim.new(0, 6)
+
+local btnBase = Instance.new("TextButton")
+btnBase.Size = UDim2.new(0.47, 0, 0, 33)
+btnBase.Position = UDim2.new(0, 10, 0, 220)
+btnBase.BackgroundColor3 = Color3.fromRGB(255, 150, 30)
+btnBase.Text = "🏠 BASE"
+btnBase.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnBase.Font = Enum.Font.GothamBold
+btnBase.TextSize = 12
+btnBase.Parent = rightPanel
+Instance.new("UICorner", btnBase).CornerRadius = UDim.new(0, 6)
+
+local btnStop = Instance.new("TextButton")
+btnStop.Size = UDim2.new(0.47, 0, 0, 33)
+btnStop.Position = UDim2.new(0.53, -10, 0, 220)
+btnStop.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+btnStop.Text = "⏹️ PARAR"
+btnStop.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnStop.Font = Enum.Font.GothamBold
+btnStop.TextSize = 12
+btnStop.Parent = rightPanel
+Instance.new("UICorner", btnStop).CornerRadius = UDim.new(0, 6)
+
+-- Velocidade
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Size = UDim2.new(1, -20, 0, 20)
+speedLabel.Position = UDim2.new(0, 10, 0, 260)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Text = "⚡ Velocidade: 33"
+speedLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+speedLabel.Font = Enum.Font.Gotham
+speedLabel.TextSize = 11
+speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+speedLabel.Parent = rightPanel
+
+local btnSpeedUp = Instance.new("TextButton")
+btnSpeedUp.Size = UDim2.new(0, 40, 0, 25)
+btnSpeedUp.Position = UDim2.new(0, 10, 0, 283)
+btnSpeedUp.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+btnSpeedUp.Text = "+10"
+btnSpeedUp.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnSpeedUp.Font = Enum.Font.GothamBold
+btnSpeedUp.TextSize = 12
+btnSpeedUp.Parent = rightPanel
+Instance.new("UICorner", btnSpeedUp).CornerRadius = UDim.new(0, 5)
+
+local btnSpeedDown = Instance.new("TextButton")
+btnSpeedDown.Size = UDim2.new(0, 40, 0, 25)
+btnSpeedDown.Position = UDim2.new(0, 55, 0, 283)
+btnSpeedDown.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+btnSpeedDown.Text = "-10"
+btnSpeedDown.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnSpeedDown.Font = Enum.Font.GothamBold
+btnSpeedDown.TextSize = 12
+btnSpeedDown.Parent = rightPanel
+Instance.new("UICorner", btnSpeedDown).CornerRadius = UDim.new(0, 5)
+
+-- Kill Aura Section
+local killAuraFrame = Instance.new("Frame")
+killAuraFrame.Size = UDim2.new(1, -20, 0, 180)
+killAuraFrame.Position = UDim2.new(0, 10, 0, 320)
+killAuraFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+killAuraFrame.Parent = rightPanel
+Instance.new("UICorner", killAuraFrame).CornerRadius = UDim.new(0, 8)
+
+local killAuraTitle = Instance.new("TextLabel")
+killAuraTitle.Size = UDim2.new(1, -20, 0, 25)
+killAuraTitle.Position = UDim2.new(0, 10, 0, 10)
+killAuraTitle.BackgroundTransparency = 1
+killAuraTitle.Text = "⚔️ Kill Aura"
+killAuraTitle.TextColor3 = Color3.fromRGB(255, 100, 100)
+killAuraTitle.Font = Enum.Font.GothamBold
+killAuraTitle.TextSize = 13
+killAuraTitle.TextXAlignment = Enum.TextXAlignment.Left
+killAuraTitle.Parent = killAuraFrame
+
+local btnKillAura = Instance.new("TextButton")
+btnKillAura.Size = UDim2.new(1, -20, 0, 30)
+btnKillAura.Position = UDim2.new(0, 10, 0, 40)
+btnKillAura.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+btnKillAura.Text = "⚔️ ATIVAR KILL AURA"
+btnKillAura.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnKillAura.Font = Enum.Font.GothamBold
+btnKillAura.TextSize = 12
+btnKillAura.Parent = killAuraFrame
+Instance.new("UICorner", btnKillAura).CornerRadius = UDim.new(0, 6)
+
+local btnAutoEquip = Instance.new("TextButton")
+btnAutoEquip.Size = UDim2.new(0.47, 0, 0, 28)
+btnAutoEquip.Position = UDim2.new(0, 10, 0, 80)
+btnAutoEquip.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+btnAutoEquip.Text = "🔫 Auto-Equip: OFF"
+btnAutoEquip.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnAutoEquip.Font = Enum.Font.Gotham
+btnAutoEquip.TextSize = 10
+btnAutoEquip.Parent = killAuraFrame
+Instance.new("UICorner", btnAutoEquip).CornerRadius = UDim.new(0, 5)
+
+local btnExtendedRange = Instance.new("TextButton")
+btnExtendedRange.Size = UDim2.new(0.47, 0, 0, 28)
+btnExtendedRange.Position = UDim2.new(0.53, -10, 0, 80)
+btnExtendedRange.BackgroundColor3 = Color3.fromRGB(80, 180, 80)
+btnExtendedRange.Text = "📏 Extended: +20"
+btnExtendedRange.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnExtendedRange.Font = Enum.Font.Gotham
+btnExtendedRange.TextSize = 10
+btnExtendedRange.Parent = killAuraFrame
+Instance.new("UICorner", btnExtendedRange).CornerRadius = UDim.new(0, 5)
+
+local rangeLabel = Instance.new("TextLabel")
+rangeLabel.Size = UDim2.new(1, -20, 0, 20)
+rangeLabel.Position = UDim2.new(0, 10, 0, 120)
+rangeLabel.BackgroundTransparency = 1
+rangeLabel.Text = "📏 Range: 6 studs"
+rangeLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
+rangeLabel.Font = Enum.Font.Gotham
+rangeLabel.TextSize = 10
+rangeLabel.TextXAlignment = Enum.TextXAlignment.Left
+rangeLabel.Parent = killAuraFrame
+
+local btnRangeUp = Instance.new("TextButton")
+btnRangeUp.Size = UDim2.new(0, 35, 0, 22)
+btnRangeUp.Position = UDim2.new(0, 10, 0, 145)
+btnRangeUp.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
+btnRangeUp.Text = "+10"
+btnRangeUp.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnRangeUp.Font = Enum.Font.GothamBold
+btnRangeUp.TextSize = 11
+btnRangeUp.Parent = killAuraFrame
+Instance.new("UICorner", btnRangeUp).CornerRadius = UDim.new(0, 4)
+
+local btnRangeDown = Instance.new("TextButton")
+btnRangeDown.Size = UDim2.new(0, 35, 0, 22)
+btnRangeDown.Position = UDim2.new(0, 50, 0, 145)
+btnRangeDown.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+btnRangeDown.Text = "-10"
+btnRangeDown.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnRangeDown.Font = Enum.Font.GothamBold
+btnRangeDown.TextSize = 11
+btnRangeDown.Parent = killAuraFrame
+Instance.new("UICorner", btnRangeDown).CornerRadius = UDim.new(0, 4)
+
+local priorityLabel = Instance.new("TextLabel")
+priorityLabel.Size = UDim2.new(0, 100, 0, 22)
+priorityLabel.Position = UDim2.new(0, 95, 0, 145)
+priorityLabel.BackgroundTransparency = 1
+priorityLabel.Text = "Priority: Nearest"
+priorityLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+priorityLabel.Font = Enum.Font.Gotham
+priorityLabel.TextSize = 10
+priorityLabel.TextXAlignment = Enum.TextXAlignment.Left
+priorityLabel.Parent = killAuraFrame
+
+local btnPriority = Instance.new("TextButton")
+btnPriority.Size = UDim2.new(0, 80, 0, 22)
+btnPriority.Position = UDim2.new(0, 200, 0, 145)
+btnPriority.BackgroundColor3 = Color3.fromRGB(100, 100, 150)
+btnPriority.Text = "Change"
+btnPriority.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnPriority.Font = Enum.Font.Gotham
+btnPriority.TextSize = 10
+btnPriority.Parent = killAuraFrame
+Instance.new("UICorner", btnPriority).CornerRadius = UDim.new(0, 4)
+
+local swingLabel = Instance.new("TextLabel")
+swingLabel.Size = UDim2.new(1, -20, 0, 20)
+swingLabel.Position = UDim2.new(0, 10, 0, 175)
+swingLabel.BackgroundTransparency = 1
+swingLabel.Text = "⏱️ Swing Delay: 0.5s"
+swingLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
+swingLabel.Font = Enum.Font.Gotham
+swingLabel.TextSize = 10
+swingLabel.TextXAlignment = Enum.TextXAlignment.Left
+swingLabel.Parent = killAuraFrame
 
 -- ============================================
 -- FUNÇÕES
@@ -490,10 +741,11 @@ local function getBackpackCount()
 end
 
 local function updateUI()
-    collectedText:Set("📦 Collected: " .. totalCollected)
-    backpackText:Set("🎒 Mochila: " .. getBackpackCount())
-    rangeLabel:Set("📏 Range: " .. killAuraRange .. " studs")
-    swingLabel:Set("⏱️ Swing Delay: " .. killAuraSwingRate .. "s")
+    collectedLabel.Text = "📦 Coletados: " .. totalCollected
+    backpackLabel.Text = "🎒 Mochila: " .. getBackpackCount() .. " | ⚡ Vel: " .. flySpeed
+    speedLabel.Text = "⚡ Velocidade: " .. flySpeed
+    rangeLabel.Text = "📏 Range: " .. killAuraRange .. " studs"
+    swingLabel.Text = "⏱️ Swing Delay: " .. killAuraSwingRate .. "s"
 end
 
 local function getNearestItem(itemName)
@@ -671,8 +923,100 @@ local function stopFarm()
     if humanoid then humanoid.PlatformStand = false end
 end
 
+-- Eventos
+btnVoo.MouseButton1Click:Connect(function() startVooFarm(selectedItem) end)
+btnTeleport.MouseButton1Click:Connect(function() teleportToItem(selectedItem) end)
+btnNextTeleport.MouseButton1Click:Connect(teleportToNext)
+btnBase.MouseButton1Click:Connect(teleportToBase)
+btnStop.MouseButton1Click:Connect(stopFarm)
+closeBtn.MouseButton1Click:Connect(function() stopFarm(); stopKillAura(); gui:Destroy() end)
+
+-- Kill Aura Events
+btnKillAura.MouseButton1Click:Connect(function()
+    killAuraEnabled = not killAuraEnabled
+    if killAuraEnabled then
+        btnKillAura.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
+        btnKillAura.Text = "⚔️ DESATIVAR KILL AURA"
+        startKillAura()
+    else
+        btnKillAura.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        btnKillAura.Text = "⚔️ ATIVAR KILL AURA"
+        stopKillAura()
+    end
+end)
+
+btnAutoEquip.MouseButton1Click:Connect(function()
+    killAuraAutoEquip = not killAuraAutoEquip
+    if killAuraAutoEquip then
+        btnAutoEquip.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
+        btnAutoEquip.Text = "🔫 Auto-Equip: ON"
+    else
+        btnAutoEquip.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        btnAutoEquip.Text = "🔫 Auto-Equip: OFF"
+    end
+end)
+
+btnExtendedRange.MouseButton1Click:Connect(function()
+    killAuraExtendedRange = not killAuraExtendedRange
+    if killAuraExtendedRange then
+        btnExtendedRange.BackgroundColor3 = Color3.fromRGB(80, 180, 80)
+        btnExtendedRange.Text = "📏 Extended: +20"
+    else
+        btnExtendedRange.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        btnExtendedRange.Text = "📏 Extended: OFF"
+    end
+end)
+
+btnRangeUp.MouseButton1Click:Connect(function()
+    killAuraRange = killAuraRange + 10
+    if killAuraRange >= 1000 then
+        rangeLabel.Text = "📏 Range: ∞ (Unlimited)"
+    else
+        rangeLabel.Text = "📏 Range: " .. killAuraRange .. " studs"
+    end
+end)
+
+btnRangeDown.MouseButton1Click:Connect(function()
+    killAuraRange = math.max(killAuraRange - 10, 2)
+    if killAuraRange >= 1000 then
+        rangeLabel.Text = "📏 Range: ∞ (Unlimited)"
+    else
+        rangeLabel.Text = "📏 Range: " .. killAuraRange .. " studs"
+    end
+end)
+
+local priorities = {"Nearest", "Lowest HP", "Highest HP"}
+local currentPriorityIndex = 1
+
+btnPriority.MouseButton1Click:Connect(function()
+    currentPriorityIndex = currentPriorityIndex % 3 + 1
+    killAuraPriority = priorities[currentPriorityIndex]
+    priorityLabel.Text = "Priority: " .. killAuraPriority
+end)
+
+-- Minimizar/Expandir
+minimizeBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = false
+    expandBtn.Visible = true
+end)
+
+expandBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = true
+    expandBtn.Visible = false
+end)
+
+btnSpeedUp.MouseButton1Click:Connect(function()
+    flySpeed = math.min(flySpeed + 10, 200)
+    updateUI()
+end)
+
+btnSpeedDown.MouseButton1Click:Connect(function()
+    flySpeed = math.max(flySpeed - 10, 10)
+    updateUI()
+end)
+
 -- Atualizar UI
 spawn(function() while true do updateUI(); task.wait(2) end end)
 
-print("✅ Survive Apocalypse Farm + Kill Aura carregado com UI Moderna!")
+print("✅ Survive Apocalypse Farm + Kill Aura carregado!")
 print("🛡️ Anti-Puxão ativado no teleporte")
