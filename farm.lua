@@ -98,8 +98,8 @@ gui.Name = "SAFarm"
 gui.Parent = game.CoreGui
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 400, 0, 550)
-mainFrame.Position = UDim2.new(0.5, -200, 0.5, -275)
+mainFrame.Size = UDim2.new(0, 400, 0, 450)
+mainFrame.Position = UDim2.new(0.5, -200, 0.5, -225)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = gui
